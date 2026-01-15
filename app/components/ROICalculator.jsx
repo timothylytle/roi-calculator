@@ -122,10 +122,18 @@ export default function ROICalculator() {
               <p className="text-slate-500 mt-1">Estimate incremental revenue from improving sales conversion rate vs. your investment.</p>
             </div>
             <div className="text-right">
-              <span className="text-slate-400 text-sm">Price</span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-slate-700">${pricePerAgent}</span>
-                <span className="text-slate-500">/sales agent/month</span>
+              <label className="text-slate-400 text-sm">Price per agent</label>
+              <div className="flex items-baseline gap-1 mt-1">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-700">$</span>
+                  <input
+                    type="number"
+                    value={pricePerAgent}
+                    onChange={(e) => setPricePerAgent(Number(e.target.value) || 0)}
+                    className="w-24 text-2xl font-bold text-slate-700 text-right border border-slate-300 rounded-lg py-1 px-3 pr-2 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  />
+                </div>
+                <span className="text-slate-500">/month</span>
               </div>
             </div>
           </div>
