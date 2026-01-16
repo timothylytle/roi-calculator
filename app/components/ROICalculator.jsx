@@ -9,18 +9,19 @@ export default function ROICalculator() {
   const [leadsPerMonth, setLeadsPerMonth] = useState(500);
   const [closeRate, setCloseRate] = useState(3.5);
   const [avgDealValue, setAvgDealValue] = useState(42000);
+  const [additionalCost, setAdditionalCost] = useState(0);
 
   const [results, setResults] = useState(null);
 
   useEffect(() => {
     calculateROI();
-  }, [pricePerAgent, salesAgents, leadsPerMonth, closeRate, avgDealValue]);
+  }, [pricePerAgent, salesAgents, leadsPerMonth, closeRate, avgDealValue, additionalCost]);
 
   const calculateROI = () => {
     // Current performance
     const closedDealsPerMonth = Math.round(leadsPerMonth * (closeRate / 100));
     const currentAnnualRevenue = closedDealsPerMonth * avgDealValue * 12;
-    const annualInvestment = pricePerAgent * salesAgents * 12;
+    const annualInvestment = (pricePerAgent * salesAgents * 12) + additionalCost;
 
     // Scenario calculations
     const scenarios = [
@@ -121,19 +122,36 @@ export default function ROICalculator() {
               <h1 className="text-2xl md:text-3xl font-bold text-slate-800">Revenue Intelligence — ROI Calculator</h1>
               <p className="text-slate-500 mt-1">Estimate incremental revenue from improving sales conversion rate vs. your investment.</p>
             </div>
-            <div className="text-right">
-              <label className="text-slate-400 text-sm">Price per agent</label>
-              <div className="flex items-baseline gap-1 mt-1">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-700">$</span>
-                  <input
-                    type="number"
-                    value={pricePerAgent}
-                    onChange={(e) => setPricePerAgent(Number(e.target.value) || 0)}
-                    className="w-24 text-2xl font-bold text-slate-700 text-right border border-slate-300 rounded-lg py-1 px-3 pr-2 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                  />
+            <div className="flex gap-6">
+              <div className="text-right">
+                <label className="text-slate-400 text-sm">Price per agent</label>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-700">$</span>
+                    <input
+                      type="number"
+                      value={pricePerAgent}
+                      onChange={(e) => setPricePerAgent(Number(e.target.value) || 0)}
+                      className="w-24 text-2xl font-bold text-slate-700 text-right border border-slate-300 rounded-lg py-1 px-3 pr-2 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    />
+                  </div>
+                  <span className="text-slate-500">/month</span>
                 </div>
-                <span className="text-slate-500">/month</span>
+              </div>
+              <div className="text-right">
+                <label className="text-slate-400 text-sm">Additional cost</label>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-700">$</span>
+                    <input
+                      type="number"
+                      value={additionalCost}
+                      onChange={(e) => setAdditionalCost(Number(e.target.value) || 0)}
+                      className="w-32 text-2xl font-bold text-slate-700 text-right border border-slate-300 rounded-lg py-1 px-3 pr-2 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    />
+                  </div>
+                  <span className="text-slate-500">/year</span>
+                </div>
               </div>
             </div>
           </div>
@@ -298,7 +316,7 @@ export default function ROICalculator() {
             <h2 className="text-lg font-bold text-slate-800 mb-1">Return on Investment (ROI)</h2>
             <p className="text-slate-500 mb-2">Payback Period Analysis</p>
             <p className="text-sm text-slate-400 mb-6">
-              Shows when cumulative incremental revenue from improved close rates pays back the annual investment of <span className="font-semibold text-slate-600">{formatFullCurrency(results.annualInvestment)}</span> ({salesAgents} agents × ${pricePerAgent}/mo × 12)
+              Shows when cumulative incremental revenue from improved close rates pays back the annual investment of <span className="font-semibold text-slate-600">{formatFullCurrency(results.annualInvestment)}</span> ({salesAgents} agents × ${pricePerAgent}/mo × 12{additionalCost > 0 ? ` + ${formatFullCurrency(additionalCost)} additional` : ''})
             </p>
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
