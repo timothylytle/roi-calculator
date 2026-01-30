@@ -1,24 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Area, ComposedChart } from 'recharts';
+import EmbedModal from './embed/EmbedModal';
+import { getCalculatorDefaults } from '@/app/lib/embed';
 
-export default function CXCalculator() {
-  const [pricePerAgent, setPricePerAgent] = useState(49);
-  const [agentsUsingPlatform, setAgentsUsingPlatform] = useState(100);
-  const [activeCustomers, setActiveCustomers] = useState(1000);
-  const [churnRate, setChurnRate] = useState(20);
-  const [avgRevenuePerCustomer, setAvgRevenuePerCustomer] = useState(5000);
-  const [grossMargin, setGrossMargin] = useState(100);
-  const [additionalCost, setAdditionalCost] = useState(0);
+const cxDefaults = getCalculatorDefaults('cx');
 
-  const [results, setResults] = useState(null);
+export default function CXCalculator({
+  embedOverrides,
+  embedTheme = 'light',
+  isEmbed = false,
+} = {}) {
+  const [pricePerAgent, setPricePerAgent] = useState(
+    embedOverrides?.pricePerAgent ?? cxDefaults.pricePerAgent,
+  );
+  const [agentsUsingPlatform, setAgentsUsingPlatform] = useState(
+    embedOverrides?.agentsUsingPlatform ?? cxDefaults.agentsUsingPlatform,
+  );
+  const [activeCustomers, setActiveCustomers] = useState(
+    embedOverrides?.activeCustomers ?? cxDefaults.activeCustomers,
+  );
+  const [churnRate, setChurnRate] = useState(
+    embedOverrides?.churnRate ?? cxDefaults.churnRate,
+  );
+  const [avgRevenuePerCustomer, setAvgRevenuePerCustomer] = useState(
+    embedOverrides?.avgRevenuePerCustomer ?? cxDefaults.avgRevenuePerCustomer,
+  );
+  const [grossMargin, setGrossMargin] = useState(
+    embedOverrides?.grossMargin ?? cxDefaults.grossMargin,
+  );
+  const [additionalCost, setAdditionalCost] = useState(
+    embedOverrides?.additionalCost ?? cxDefaults.additionalCost,
+  );
+  const [isEmbedOpen, setIsEmbedOpen] = useState(false);
 
-  useEffect(() => {
-    calculateROI();
-  }, [pricePerAgent, agentsUsingPlatform, activeCustomers, churnRate, avgRevenuePerCustomer, grossMargin, additionalCost]);
-
-  const calculateROI = () => {
+  const results = useMemo(() => {
     // Current performance
     const annualInvestment = (pricePerAgent * agentsUsingPlatform * 12) + additionalCost;
     const marginMultiplier = grossMargin / 100;
@@ -76,16 +93,24 @@ export default function CXCalculator() {
       ? annualInvestment / (scenarios[1].retainedRevenue / 12)
       : null;
 
-    setResults({
+    return {
       annualInvestment,
       customersLostAnnually,
       totalAnnualChurnCost,
       scenarios,
       chartData,
       breakEvenPeriod1,
-      breakEvenPeriod2
-    });
-  };
+      breakEvenPeriod2,
+    };
+  }, [
+    activeCustomers,
+    additionalCost,
+    agentsUsingPlatform,
+    avgRevenuePerCustomer,
+    churnRate,
+    grossMargin,
+    pricePerAgent,
+  ]);
 
   const formatCurrency = (value) => {
     if (value >= 1000000) {
@@ -112,8 +137,26 @@ export default function CXCalculator() {
     return value.toFixed(1) + '%';
   };
 
+  const wrapperClasses = [
+    isEmbed ? 'min-h-full' : 'min-h-screen',
+    embedTheme === 'dark' ? 'embed-theme-dark bg-slate-900' : 'bg-slate-100',
+    isEmbed ? 'p-4 md:p-6' : 'p-4 md:p-8',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const currentValues = {
+    pricePerAgent,
+    agentsUsingPlatform,
+    activeCustomers,
+    churnRate,
+    avgRevenuePerCustomer,
+    grossMargin,
+    additionalCost,
+  };
+
   return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-8">
+    <div className={wrapperClasses}>
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
@@ -122,7 +165,7 @@ export default function CXCalculator() {
               <h1 className="text-2xl md:text-3xl font-bold text-slate-800">CX Intelligence — ROI Calculator</h1>
               <p className="text-slate-500 mt-1">Estimate revenue retention from reducing customer churn vs. your investment.</p>
             </div>
-            <div className="flex gap-6">
+            <div className="flex gap-6 flex-wrap items-start justify-end">
               <div className="text-right">
                 <label className="text-slate-400 text-sm">Price per agent</label>
                 <div className="flex items-baseline gap-1 mt-1">
@@ -153,6 +196,20 @@ export default function CXCalculator() {
                   <span className="text-slate-500">/year</span>
                 </div>
               </div>
+              {!isEmbed && (
+                <div className="text-right">
+                  <label className="text-slate-400 text-sm invisible">Embed</label>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsEmbedOpen(true)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition"
+                    >
+                      Embed
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -214,7 +271,7 @@ export default function CXCalculator() {
                     <span>60%</span>
                   </div>
                   <p className="text-sm text-slate-500 mt-2">
-                    The percentage of customers who cancel or don't renew annually.
+                    The percentage of customers who cancel or don&rsquo;t renew annually.
                   </p>
                 </div>
 
@@ -502,6 +559,13 @@ export default function CXCalculator() {
           </div>
         )}
       </div>
+      {isEmbedOpen && !isEmbed && (
+        <EmbedModal
+          calculatorType="cx"
+          initialValues={currentValues}
+          onClose={() => setIsEmbedOpen(false)}
+        />
+      )}
     </div>
   );
 }

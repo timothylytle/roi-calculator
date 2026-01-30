@@ -1,23 +1,38 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Area, ComposedChart, BarChart, Bar } from 'recharts';
+import EmbedModal from './embed/EmbedModal';
+import { getCalculatorDefaults } from '@/app/lib/embed';
 
-export default function ROICalculator() {
-  const [pricePerAgent, setPricePerAgent] = useState(79);
-  const [salesAgents, setSalesAgents] = useState(100);
-  const [leadsPerMonth, setLeadsPerMonth] = useState(500);
-  const [closeRate, setCloseRate] = useState(3.5);
-  const [avgDealValue, setAvgDealValue] = useState(42000);
-  const [additionalCost, setAdditionalCost] = useState(0);
+const revenueDefaults = getCalculatorDefaults('revenue');
 
-  const [results, setResults] = useState(null);
+export default function ROICalculator({
+  embedOverrides,
+  embedTheme = 'light',
+  isEmbed = false,
+} = {}) {
+  const [pricePerAgent, setPricePerAgent] = useState(
+    embedOverrides?.pricePerAgent ?? revenueDefaults.pricePerAgent,
+  );
+  const [salesAgents, setSalesAgents] = useState(
+    embedOverrides?.salesAgents ?? revenueDefaults.salesAgents,
+  );
+  const [leadsPerMonth, setLeadsPerMonth] = useState(
+    embedOverrides?.leadsPerMonth ?? revenueDefaults.leadsPerMonth,
+  );
+  const [closeRate, setCloseRate] = useState(
+    embedOverrides?.closeRate ?? revenueDefaults.closeRate,
+  );
+  const [avgDealValue, setAvgDealValue] = useState(
+    embedOverrides?.avgDealValue ?? revenueDefaults.avgDealValue,
+  );
+  const [additionalCost, setAdditionalCost] = useState(
+    embedOverrides?.additionalCost ?? revenueDefaults.additionalCost,
+  );
+  const [isEmbedOpen, setIsEmbedOpen] = useState(false);
 
-  useEffect(() => {
-    calculateROI();
-  }, [pricePerAgent, salesAgents, leadsPerMonth, closeRate, avgDealValue, additionalCost]);
-
-  const calculateROI = () => {
+  const results = useMemo(() => {
     // Current performance
     const closedDealsPerMonth = Math.round(leadsPerMonth * (closeRate / 100));
     const currentAnnualRevenue = closedDealsPerMonth * avgDealValue * 12;
@@ -75,7 +90,7 @@ export default function ROICalculator() {
       ? annualInvestment / (scenarios[2].incrementalRevenue / 12)
       : null;
 
-    setResults({
+    return {
       closedDealsPerMonth,
       currentAnnualRevenue,
       annualInvestment,
@@ -83,9 +98,9 @@ export default function ROICalculator() {
       chartData,
       breakEvenPeriod1,
       breakEvenPeriod2,
-      breakEvenPeriod3
-    });
-  };
+      breakEvenPeriod3,
+    };
+  }, [additionalCost, avgDealValue, closeRate, leadsPerMonth, pricePerAgent, salesAgents]);
 
   const formatCurrency = (value) => {
     if (value >= 1000000) {
@@ -112,8 +127,25 @@ export default function ROICalculator() {
     return value.toFixed(1) + '%';
   };
 
+  const wrapperClasses = [
+    isEmbed ? 'min-h-full' : 'min-h-screen',
+    embedTheme === 'dark' ? 'embed-theme-dark bg-slate-900' : 'bg-slate-100',
+    isEmbed ? 'p-4 md:p-6' : 'p-4 md:p-8',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const currentValues = {
+    pricePerAgent,
+    salesAgents,
+    leadsPerMonth,
+    closeRate,
+    avgDealValue,
+    additionalCost,
+  };
+
   return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-8">
+    <div className={wrapperClasses}>
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
@@ -122,7 +154,7 @@ export default function ROICalculator() {
               <h1 className="text-2xl md:text-3xl font-bold text-slate-800">Revenue Intelligence — ROI Calculator</h1>
               <p className="text-slate-500 mt-1">Estimate incremental revenue from improving sales conversion rate vs. your investment.</p>
             </div>
-            <div className="flex gap-6">
+            <div className="flex gap-6 flex-wrap items-start justify-end">
               <div className="text-right">
                 <label className="text-slate-400 text-sm">Price per agent</label>
                 <div className="flex items-baseline gap-1 mt-1">
@@ -153,6 +185,20 @@ export default function ROICalculator() {
                   <span className="text-slate-500">/year</span>
                 </div>
               </div>
+              {!isEmbed && (
+                <div className="text-right">
+                  <label className="text-slate-400 text-sm invisible">Embed</label>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsEmbedOpen(true)}
+                      className="bg-sky-600 hover:bg-sky-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition"
+                    >
+                      Embed
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -499,6 +545,13 @@ export default function ROICalculator() {
           </div>
         )}
       </div>
+      {isEmbedOpen && !isEmbed && (
+        <EmbedModal
+          calculatorType="revenue"
+          initialValues={currentValues}
+          onClose={() => setIsEmbedOpen(false)}
+        />
+      )}
     </div>
   );
 }
