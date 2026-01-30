@@ -2,7 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-export default function Navigation({ activeCalculator, onCalculatorChange }) {
+export default function Navigation({
+  activeCalculator,
+  onCalculatorChange,
+  withinContainer = false,
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -38,8 +42,12 @@ export default function Navigation({ activeCalculator, onCalculatorChange }) {
     setIsOpen(false);
   };
 
+  const containerClasses = withinContainer
+    ? 'absolute top-4 left-4 z-10'
+    : 'fixed top-4 left-4 z-50';
+
   return (
-    <div className="fixed top-4 left-4 z-50" ref={menuRef}>
+    <div className={containerClasses} ref={menuRef}>
       {/* Hamburger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
