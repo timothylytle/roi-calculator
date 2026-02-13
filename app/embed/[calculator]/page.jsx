@@ -61,7 +61,7 @@ export default async function EmbedCalculatorPage({
 
   return (
     <div
-      className={`min-h-screen ${backgroundClass} relative flex flex-col`}
+      className={`embed-root ${backgroundClass} relative flex flex-col`}
     >
       {showNavigation && (
         <EmbedNavigation
