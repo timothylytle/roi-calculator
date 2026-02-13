@@ -4,11 +4,18 @@ import { useEffect, useMemo, useState } from 'react';
 import ROICalculator from '../ROICalculator';
 import CXCalculator from '../CXCalculator';
 import Navigation from '../Navigation';
+import EmbedSizingControls from './EmbedSizingControls';
+import EmbedSnippetPreview from './EmbedSnippetPreview';
 import {
   buildEmbedUrl,
   calculatorConfigs,
   getCalculatorDefaults,
 } from '@/app/lib/embed';
+import {
+  DEFAULT_STATIC_DIMENSIONS,
+  validateDimensions,
+  coerceDimensions,
+} from '@/app/lib/embedSizing';
 
 const themeOptions = [
   { value: 'light', label: 'Light' },
@@ -35,6 +42,10 @@ export default function EmbedModal({
   const [theme, setTheme] = useState('light');
   const [showNavigation, setShowNavigation] = useState(false);
   const [copyState, setCopyState] = useState('idle');
+  const [isResponsive, setIsResponsive] = useState(true);
+  const [staticDimensions, setStaticDimensions] = useState(
+    DEFAULT_STATIC_DIMENSIONS,
+  );
 
   useEffect(() => {
     const original = document.body.style.overflow;
@@ -44,10 +55,24 @@ export default function EmbedModal({
     };
   }, []);
 
-  const { errors, isValid, numericValues } = useMemo(
-    () => validateFormValues(formValues, config),
-    [formValues, config],
+  const {
+    errors: calculatorErrors,
+    isValid: calculatorValid,
+    numericValues,
+  } = useMemo(() => validateFormValues(formValues, config), [formValues, config]);
+
+  const {
+    errors: dimensionErrors,
+    isValid: dimensionsValid,
+    numeric: numericDimensions,
+  } = useMemo(
+    () => validateDimensions(staticDimensions),
+    [staticDimensions],
   );
+
+  const sanitizedDimensions = coerceDimensions(numericDimensions);
+  const sizingIsValid = isResponsive || dimensionsValid;
+  const canCopy = calculatorValid && sizingIsValid;
 
   const previewKey = useMemo(
     () =>
@@ -60,10 +85,16 @@ export default function EmbedModal({
     [calculatorType, numericValues, theme, showNavigation],
   );
 
-  const iframeSnippet = `<iframe src="${embedUrl}" width="100%" height="${previewHeight + 200}" style="border:0; border-radius:16px;" loading="lazy"></iframe>`;
+  const iframeSnippet = isResponsive
+    ? `<div class="hs-responsive-embed">
+  <div class="hs-responsive-embed__wrapper">
+    <iframe src="${embedUrl}" width="100%" height="100%" style="border:0; border-radius:16px;" loading="lazy"></iframe>
+  </div>
+</div>`
+    : `<iframe src="${embedUrl}" width="${sanitizedDimensions.width}" height="${sanitizedDimensions.height}" style="border:0; border-radius:16px;" loading="lazy"></iframe>`;
 
   const handleCopy = async () => {
-    if (!isValid) return;
+    if (!canCopy) return;
     try {
       await navigator.clipboard.writeText(iframeSnippet);
       setCopyState('copied');
@@ -77,6 +108,14 @@ export default function EmbedModal({
   const handleFieldChange = (field) => (event) => {
     const { value } = event.target;
     setFormValues((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleDimensionChange = (field) => (event) => {
+    const { value } = event.target;
+    setStaticDimensions((prev) => ({
       ...prev,
       [field]: value,
     }));
@@ -145,14 +184,14 @@ export default function EmbedModal({
                         max={meta.max}
                         step={meta.step ?? 1}
                         className={`w-full border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 ${
-                          errors[field]
+                          calculatorErrors[field]
                             ? 'border-rose-400 focus:ring-rose-300'
                             : 'border-slate-300 focus:ring-sky-200'
                         }`}
                       />
-                      {errors[field] && (
+                      {calculatorErrors[field] && (
                         <p className="text-xs text-rose-500 mt-1">
-                          {errors[field]}
+                          {calculatorErrors[field]}
                         </p>
                       )}
                     </div>
@@ -198,6 +237,14 @@ export default function EmbedModal({
                 partner site.
               </p>
             </section>
+
+            <EmbedSizingControls
+              isResponsive={isResponsive}
+              staticDimensions={staticDimensions}
+              errors={dimensionErrors}
+              onToggleResponsive={setIsResponsive}
+              onDimensionChange={handleDimensionChange}
+            />
           </div>
 
           <div className="w-full lg:w-1/2 bg-slate-50 p-6 space-y-5">
@@ -208,9 +255,9 @@ export default function EmbedModal({
               <p className="text-sm text-slate-500 mb-3">
                 This simulates the iframe contents using the settings above.
               </p>
-              <div
-                className="border border-slate-200 rounded-xl overflow-hidden bg-white"
-                style={{ height: previewHeight }}
+              <EmbedSnippetPreview
+                isResponsive={isResponsive}
+                staticDimensions={sanitizedDimensions}
               >
                 <EmbedPreview
                   calculatorType={calculatorType}
@@ -224,7 +271,7 @@ export default function EmbedModal({
                     isEmbed
                   />
                 </EmbedPreview>
-              </div>
+              </EmbedSnippetPreview>
             </section>
 
             <section>
@@ -235,7 +282,14 @@ export default function EmbedModal({
                 Drop this iframe code into any CMS or website builder that
                 supports custom HTML.
               </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Responsive mode outputs HubSpot’s{' '}
+                <code className="font-mono text-[11px]">.hs-responsive-embed</code>{' '}
+                wrapper — keep that markup so the iframe stretches fluidly.
+                Switch to static sizing if a partner needs explicit dimensions.
+              </p>
               <textarea
+                aria-label="Generated iframe code"
                 className="w-full mt-3 font-mono text-xs border border-slate-300 rounded-lg p-3 bg-white h-28"
                 readOnly
                 value={iframeSnippet}
@@ -244,9 +298,9 @@ export default function EmbedModal({
                 <button
                   type="button"
                   onClick={handleCopy}
-                  disabled={!isValid}
+                  disabled={!canCopy}
                   className={`px-4 py-2 rounded-lg font-semibold transition ${
-                    isValid
+                    canCopy
                       ? 'bg-slate-900 text-white hover:bg-slate-800'
                       : 'bg-slate-300 text-slate-500 cursor-not-allowed'
                   }`}

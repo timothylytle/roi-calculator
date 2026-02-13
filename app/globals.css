@@ -64,3 +64,18 @@ body {
   color: #f8fafc;
   border-color: #1e293b;
 }
+
+.hs-responsive-embed {
+  position: relative;
+  width: 100%;
+}
+
+.hs-responsive-embed__wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.hs-responsive-embed__frame {
+  position: absolute;
+  inset: 0;
+}
