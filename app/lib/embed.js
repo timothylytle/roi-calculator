@@ -4,7 +4,7 @@ const revenueFields = {
     min: 0,
     max: 2000,
     step: 1,
-    defaultValue: 79,
+    defaultValue: 129,
   },
   salesAgents: {
     label: 'Sales agents using platform',
@@ -50,7 +50,7 @@ const cxFields = {
     min: 0,
     max: 2000,
     step: 1,
-    defaultValue: 49,
+    defaultValue: 99,
   },
   agentsUsingPlatform: {
     label: 'Agents using platform',
