@@ -71,10 +71,15 @@ function validateDimensions({ width, height }):
 
 Snippet generation:
 ```
-if (isResponsive):
-  snippet = `<div class="hs-responsive-embed">\n  <div class="hs-responsive-embed__wrapper">\n    <iframe src="${embedUrl}" width="100%" height="100%" ...></iframe>\n  </div>\n</div>`
-else:
-  snippet = `<iframe src="${embedUrl}" width="${width}" height="${height}" ...></iframe>`
+const iframeMarkup = isResponsive
+  ? `<div class="hs-responsive-embed">\n  <div class="hs-responsive-embed__wrapper">\n    <iframe src="${embedUrl}" width="100%" height="100%" ...></iframe>\n  </div>\n</div>`
+  : `<iframe src="${embedUrl}" width="${width}" height="${height}" ...></iframe>`;
+
+const scriptBlock = includeParentScript
+  ? `\n<script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.9/iframeResizer.min.js"></script>\n<script>\n  iFrameResize({ checkOrigin: false }, '.hs-responsive-embed iframe');\n</script>`
+  : '';
+
+snippet = `${iframeMarkup}${scriptBlock}`
 ```
 
 ### 1.7 Testing Architecture
@@ -121,7 +126,9 @@ else:
 - [x] Phase 2: Snippet & Preview Output (2026-02-13)
 
 ### 3.2 Decision Log
-- *(Add entries as decisions occur.)*
+- **Decision:** Add optional parent-script toggle in embed modal
+  - Date: 2026-02-14
+  - Rationale: HubSpot editors need a copy-paste snippet that includes `iframeResizer.min.js` when the host hasn’t already wired it up.
 
 ### 3.3 Surprises & Discoveries
 - *(Capture notable findings during implementation.)*

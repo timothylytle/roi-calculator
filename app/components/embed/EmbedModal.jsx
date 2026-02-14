@@ -46,6 +46,7 @@ export default function EmbedModal({
   const [staticDimensions, setStaticDimensions] = useState(
     DEFAULT_STATIC_DIMENSIONS,
   );
+  const [includeParentScript, setIncludeParentScript] = useState(false);
 
   useEffect(() => {
     const original = document.body.style.overflow;
@@ -85,13 +86,23 @@ export default function EmbedModal({
     [calculatorType, numericValues, theme, showNavigation],
   );
 
-  const iframeSnippet = isResponsive
+  const iframeMarkup = isResponsive
     ? `<div class="hs-responsive-embed">
   <div class="hs-responsive-embed__wrapper">
     <iframe src="${embedUrl}" width="100%" height="100%" style="border:0; border-radius:16px;" loading="lazy"></iframe>
   </div>
 </div>`
     : `<iframe src="${embedUrl}" width="${sanitizedDimensions.width}" height="${sanitizedDimensions.height}" style="border:0; border-radius:16px;" loading="lazy"></iframe>`;
+
+  const parentScriptBlock = includeParentScript
+    ? `
+<script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.9/iframeResizer.min.js"></script>
+<script>
+  iFrameResize({ checkOrigin: false }, '.hs-responsive-embed iframe');
+</script>`
+    : '';
+
+  const iframeSnippet = `${iframeMarkup}${parentScriptBlock}`;
 
   const handleCopy = async () => {
     if (!canCopy) return;
@@ -294,6 +305,20 @@ export default function EmbedModal({
                 readOnly
                 value={iframeSnippet}
               />
+              <label className="mt-3 flex items-center gap-3 text-sm font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={includeParentScript}
+                  onChange={(event) => setIncludeParentScript(event.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                />
+                Include iframe-resizer parent script (HubSpot helper)
+              </label>
+              <p className="text-xs text-slate-500">
+                Enable this when the host page has not already loaded
+                `iframeResizer.min.js`. Most HubSpot pages should keep it on to
+                auto-resize.
+              </p>
               <div className="flex items-center justify-between mt-3">
                 <button
                   type="button"
