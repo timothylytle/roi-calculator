@@ -42,4 +42,13 @@ describe('EmbedModal snippet output', () => {
     expect(snippet).toContain('height="880"');
     expect(snippet).not.toContain('hs-responsive-embed');
   });
+
+  it('appends iframe-resizer scripts when toggle enabled', () => {
+    render(<EmbedModal calculatorType="revenue" initialValues={{}} onClose={jest.fn()} />);
+
+    fireEvent.click(screen.getByLabelText(/include iframe-resizer parent script/i));
+    const snippet = screen.getByLabelText(/generated iframe code/i).value;
+    expect(snippet).toContain('iframeResizer.min.js');
+    expect(snippet).toContain("iFrameResize({ checkOrigin: false }");
+  });
 });
