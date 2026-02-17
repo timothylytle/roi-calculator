@@ -44,7 +44,13 @@ export default async function EmbedCalculatorPage({
   }
 
   const searchParamsString = buildSearchParamsString(resolvedSearchParams);
-  const { overrides, theme, showNavigation, warnings } = parseEmbedParams(
+  const {
+    overrides,
+    theme,
+    showNavigation,
+    showAdditionalCost,
+    warnings,
+  } = parseEmbedParams(
     searchParamsString,
     calculatorType,
   );
@@ -73,6 +79,7 @@ export default async function EmbedCalculatorPage({
         embedOverrides={overrides}
         embedTheme={theme}
         isEmbed
+        additionalCostEnabled={showAdditionalCost}
       />
       <div className="px-4 pb-6 text-center text-xs text-slate-400">
         Having trouble viewing the embed?{' '}

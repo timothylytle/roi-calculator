@@ -11,6 +11,7 @@ export default function ROICalculator({
   embedOverrides,
   embedTheme = 'light',
   isEmbed = false,
+  additionalCostEnabled = true,
 } = {}) {
   const [pricePerAgent, setPricePerAgent] = useState(
     embedOverrides?.pricePerAgent ?? revenueDefaults.pricePerAgent,
@@ -27,16 +28,21 @@ export default function ROICalculator({
   const [avgDealValue, setAvgDealValue] = useState(
     embedOverrides?.avgDealValue ?? revenueDefaults.avgDealValue,
   );
+  const additionalCostDefault = revenueDefaults.additionalCost;
   const [additionalCost, setAdditionalCost] = useState(
-    embedOverrides?.additionalCost ?? revenueDefaults.additionalCost,
+    embedOverrides?.additionalCost ?? additionalCostDefault,
   );
   const [isEmbedOpen, setIsEmbedOpen] = useState(false);
+
+  const effectiveAdditionalCost =
+    isEmbed && !additionalCostEnabled ? additionalCostDefault : additionalCost;
 
   const results = useMemo(() => {
     // Current performance
     const closedDealsPerMonth = Math.round(leadsPerMonth * (closeRate / 100));
     const currentAnnualRevenue = closedDealsPerMonth * avgDealValue * 12;
-    const annualInvestment = (pricePerAgent * salesAgents * 12) + additionalCost;
+    const annualInvestment =
+      pricePerAgent * salesAgents * 12 + effectiveAdditionalCost;
 
     // Scenario calculations
     const scenarios = [
@@ -100,7 +106,14 @@ export default function ROICalculator({
       breakEvenPeriod2,
       breakEvenPeriod3,
     };
-  }, [additionalCost, avgDealValue, closeRate, leadsPerMonth, pricePerAgent, salesAgents]);
+  }, [
+    effectiveAdditionalCost,
+    avgDealValue,
+    closeRate,
+    leadsPerMonth,
+    pricePerAgent,
+    salesAgents,
+  ]);
 
   const formatCurrency = (value) => {
     if (value >= 1000000) {
@@ -170,21 +183,23 @@ export default function ROICalculator({
                   <span className="text-slate-500">/month</span>
                 </div>
               </div>
-              <div className="text-right">
-                <label className="text-slate-400 text-sm">Additional cost</label>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-700">$</span>
-                    <input
-                      type="number"
-                      value={additionalCost}
-                      onChange={(e) => setAdditionalCost(Number(e.target.value) || 0)}
-                      className="w-32 text-2xl font-bold text-slate-700 text-right border border-slate-300 rounded-lg py-1 px-3 pr-2 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                    />
+              {(!isEmbed || additionalCostEnabled) && (
+                <div className="text-right">
+                  <label className="text-slate-400 text-sm">Additional cost</label>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-700">$</span>
+                      <input
+                        type="number"
+                        value={additionalCost}
+                        onChange={(e) => setAdditionalCost(Number(e.target.value) || 0)}
+                        className="w-32 text-2xl font-bold text-slate-700 text-right border border-slate-300 rounded-lg py-1 px-3 pr-2 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      />
+                    </div>
+                    <span className="text-slate-500">/year</span>
                   </div>
-                  <span className="text-slate-500">/year</span>
                 </div>
-              </div>
+              )}
               {!isEmbed && (
                 <div className="text-right">
                   <label className="text-slate-400 text-sm invisible">Embed</label>
@@ -362,7 +377,7 @@ export default function ROICalculator({
             <h2 className="text-lg font-bold text-slate-800 mb-1">Return on Investment (ROI)</h2>
             <p className="text-slate-500 mb-2">Payback Period Analysis</p>
             <p className="text-sm text-slate-400 mb-6">
-              Shows when cumulative incremental revenue from improved close rates pays back the annual investment of <span className="font-semibold text-slate-600">{formatFullCurrency(results.annualInvestment)}</span> ({salesAgents} agents × ${pricePerAgent}/mo × 12{additionalCost > 0 ? ` + ${formatFullCurrency(additionalCost)} additional` : ''})
+              Shows when cumulative incremental revenue from improved close rates pays back the annual investment of <span className="font-semibold text-slate-600">{formatFullCurrency(results.annualInvestment)}</span> ({salesAgents} agents × ${pricePerAgent}/mo × 12{effectiveAdditionalCost > 0 ? ` + ${formatFullCurrency(effectiveAdditionalCost)} additional` : ''})
             </p>
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
