@@ -107,6 +107,8 @@ const buildDefaults = (fields, fieldOrder) =>
 export const calculatorConfigs = {
   revenue: {
     label: 'Revenue Intelligence',
+    supportsAdditionalCostToggle: true,
+    showAdditionalCostDefault: false,
     fieldOrder: [
       'pricePerAgent',
       'salesAgents',
@@ -119,6 +121,8 @@ export const calculatorConfigs = {
   },
   cx: {
     label: 'CX Intelligence',
+    supportsAdditionalCostToggle: true,
+    showAdditionalCostDefault: false,
     fieldOrder: [
       'pricePerAgent',
       'agentsUsingPlatform',
@@ -172,12 +176,14 @@ export function buildEmbedUrl(
   values,
   theme = 'light',
   showNavigation = false,
+  options = {},
 ) {
   const config = calculatorConfigs[calculatorType];
   if (!config) {
     throw new Error(`Unknown calculator type: ${calculatorType}`);
   }
 
+  const { showAdditionalCost = false } = options;
   const params = new URLSearchParams();
   config.fieldOrder.forEach((field) => {
     const value = values[field];
@@ -197,11 +203,30 @@ export function buildEmbedUrl(
   if (showNavigation) {
     params.set('showNavigation', 'true');
   }
+  if (config.supportsAdditionalCostToggle && showAdditionalCost) {
+    params.set('showAdditionalCost', 'true');
+  }
 
   const origin =
     typeof window !== 'undefined' ? window.location.origin : '';
 
   return `${origin}/embed/${calculatorType}?${params.toString()}`;
+}
+
+function normalizeBoolean(rawValue, defaultValue = false) {
+  if (rawValue === undefined || rawValue === null) {
+    return defaultValue;
+  }
+
+  const value = String(rawValue).toLowerCase();
+  if (value === 'true' || value === '1') {
+    return true;
+  }
+  if (value === 'false' || value === '0') {
+    return false;
+  }
+
+  return defaultValue;
 }
 
 export function parseEmbedParams(searchParams, calculatorType) {
@@ -211,6 +236,7 @@ export function parseEmbedParams(searchParams, calculatorType) {
       overrides: {},
       theme: 'light',
       showNavigation: false,
+      showAdditionalCost: true,
       warnings: ['Unknown calculator'],
     };
   }
@@ -223,6 +249,7 @@ export function parseEmbedParams(searchParams, calculatorType) {
   const overrides = {};
   const warnings = [];
 
+  const additionalCostField = 'additionalCost';
   config.fieldOrder.forEach((field) => {
     const meta = config.fields[field];
     if (!params.has(field)) {
@@ -242,5 +269,27 @@ export function parseEmbedParams(searchParams, calculatorType) {
     params.get('showNavigation') === 'true' ||
     params.get('showNavigation') === '1';
 
-  return { overrides, theme, showNavigation, warnings };
+  const showAdditionalCostDefault =
+    config.supportsAdditionalCostToggle && 'showAdditionalCostDefault' in config
+      ? Boolean(config.showAdditionalCostDefault)
+      : true;
+  const showAdditionalCost = config.supportsAdditionalCostToggle
+    ? normalizeBoolean(params.get('showAdditionalCost'), showAdditionalCostDefault)
+    : true;
+
+  if (
+    config.supportsAdditionalCostToggle &&
+    !showAdditionalCost &&
+    typeof overrides[additionalCostField] === 'number'
+  ) {
+    const defaultAdditionalCost = config.fields[additionalCostField].defaultValue ?? 0;
+    if (overrides[additionalCostField] !== defaultAdditionalCost) {
+      warnings.push(
+        'Additional cost override ignored because the field is hidden in this embed',
+      );
+    }
+    overrides[additionalCostField] = defaultAdditionalCost;
+  }
+
+  return { overrides, theme, showNavigation, showAdditionalCost, warnings };
 }

@@ -41,6 +41,14 @@ export default function EmbedModal({
   );
   const [theme, setTheme] = useState('light');
   const [showNavigation, setShowNavigation] = useState(false);
+  const canToggleAdditionalCost = Boolean(
+    config.supportsAdditionalCostToggle,
+  );
+  const [showAdditionalCost, setShowAdditionalCost] = useState(() =>
+    canToggleAdditionalCost
+      ? Boolean(config.showAdditionalCostDefault)
+      : true,
+  );
   const [copyState, setCopyState] = useState('idle');
   const [isResponsive, setIsResponsive] = useState(true);
   const [staticDimensions, setStaticDimensions] = useState(
@@ -77,13 +85,24 @@ export default function EmbedModal({
 
   const previewKey = useMemo(
     () =>
-      `${calculatorType}-${theme}-${JSON.stringify(numericValues)}-${showNavigation}`,
-    [calculatorType, numericValues, showNavigation, theme],
+      `${calculatorType}-${theme}-${JSON.stringify(numericValues)}-${showNavigation}-${showAdditionalCost}`,
+    [calculatorType, numericValues, showAdditionalCost, showNavigation, theme],
   );
 
   const embedUrl = useMemo(
-    () => buildEmbedUrl(calculatorType, numericValues, theme, showNavigation),
-    [calculatorType, numericValues, theme, showNavigation],
+    () =>
+      buildEmbedUrl(calculatorType, numericValues, theme, showNavigation, {
+        showAdditionalCost:
+          canToggleAdditionalCost && showAdditionalCost,
+      }),
+    [
+      calculatorType,
+      canToggleAdditionalCost,
+      numericValues,
+      showAdditionalCost,
+      showNavigation,
+      theme,
+    ],
   );
 
   const iframeMarkup = isResponsive
@@ -247,6 +266,25 @@ export default function EmbedModal({
                 Disable the navigation to avoid redundant chrome inside a
                 partner site.
               </p>
+
+              {canToggleAdditionalCost && (
+                <div className="mt-4 space-y-1">
+                  <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={showAdditionalCost}
+                      onChange={(event) =>
+                        setShowAdditionalCost(event.target.checked)
+                      }
+                      className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    />
+                    Show Additional cost input in embed
+                  </label>
+                  <p className="text-xs text-slate-500">
+                    Leave off to hide the field and treat Additional cost as $0.
+                  </p>
+                </div>
+              )}
             </section>
 
             <EmbedSizingControls
@@ -280,6 +318,9 @@ export default function EmbedModal({
                     embedOverrides={numericValues}
                     embedTheme={theme}
                     isEmbed
+                    additionalCostEnabled={
+                      canToggleAdditionalCost ? showAdditionalCost : true
+                    }
                   />
                 </EmbedPreview>
               </EmbedSnippetPreview>

@@ -11,6 +11,7 @@ export default function CXCalculator({
   embedOverrides,
   embedTheme = 'light',
   isEmbed = false,
+  additionalCostEnabled = true,
 } = {}) {
   const [pricePerAgent, setPricePerAgent] = useState(
     embedOverrides?.pricePerAgent ?? cxDefaults.pricePerAgent,
@@ -30,14 +31,19 @@ export default function CXCalculator({
   const [grossMargin, setGrossMargin] = useState(
     embedOverrides?.grossMargin ?? cxDefaults.grossMargin,
   );
+  const additionalCostDefault = cxDefaults.additionalCost;
   const [additionalCost, setAdditionalCost] = useState(
-    embedOverrides?.additionalCost ?? cxDefaults.additionalCost,
+    embedOverrides?.additionalCost ?? additionalCostDefault,
   );
   const [isEmbedOpen, setIsEmbedOpen] = useState(false);
 
+  const effectiveAdditionalCost =
+    isEmbed && !additionalCostEnabled ? additionalCostDefault : additionalCost;
+
   const results = useMemo(() => {
     // Current performance
-    const annualInvestment = (pricePerAgent * agentsUsingPlatform * 12) + additionalCost;
+    const annualInvestment =
+      pricePerAgent * agentsUsingPlatform * 12 + effectiveAdditionalCost;
     const marginMultiplier = grossMargin / 100;
 
     // Current churn impact
@@ -104,10 +110,10 @@ export default function CXCalculator({
     };
   }, [
     activeCustomers,
-    additionalCost,
     agentsUsingPlatform,
     avgRevenuePerCustomer,
     churnRate,
+    effectiveAdditionalCost,
     grossMargin,
     pricePerAgent,
   ]);
@@ -181,21 +187,23 @@ export default function CXCalculator({
                   <span className="text-slate-500">/month</span>
                 </div>
               </div>
-              <div className="text-right">
-                <label className="text-slate-400 text-sm">Additional cost</label>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-700">$</span>
-                    <input
-                      type="number"
-                      value={additionalCost}
-                      onChange={(e) => setAdditionalCost(Number(e.target.value) || 0)}
-                      className="w-32 text-2xl font-bold text-slate-700 text-right border border-slate-300 rounded-lg py-1 px-3 pr-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                    />
+              {(!isEmbed || additionalCostEnabled) && (
+                <div className="text-right">
+                  <label className="text-slate-400 text-sm">Additional cost</label>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-700">$</span>
+                      <input
+                        type="number"
+                        value={additionalCost}
+                        onChange={(e) => setAdditionalCost(Number(e.target.value) || 0)}
+                        className="w-32 text-2xl font-bold text-slate-700 text-right border border-slate-300 rounded-lg py-1 px-3 pr-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      />
+                    </div>
+                    <span className="text-slate-500">/year</span>
                   </div>
-                  <span className="text-slate-500">/year</span>
                 </div>
-              </div>
+              )}
               {!isEmbed && (
                 <div className="text-right">
                   <label className="text-slate-400 text-sm invisible">Embed</label>
@@ -401,7 +409,7 @@ export default function CXCalculator({
             <h2 className="text-lg font-bold text-slate-800 mb-1">Return on Investment (ROI)</h2>
             <p className="text-slate-500 mb-2">Payback Period Analysis</p>
             <p className="text-sm text-slate-400 mb-6">
-              Shows when cumulative retained revenue from reduced churn pays back the annual investment of <span className="font-semibold text-slate-600">{formatFullCurrency(results.annualInvestment)}</span> ({agentsUsingPlatform} agents x ${pricePerAgent}/mo x 12{additionalCost > 0 ? ` + ${formatFullCurrency(additionalCost)} additional` : ''})
+              Shows when cumulative retained revenue from reduced churn pays back the annual investment of <span className="font-semibold text-slate-600">{formatFullCurrency(results.annualInvestment)}</span> ({agentsUsingPlatform} agents x ${pricePerAgent}/mo x 12{effectiveAdditionalCost > 0 ? ` + ${formatFullCurrency(effectiveAdditionalCost)} additional` : ''})
             </p>
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
